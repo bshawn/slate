@@ -11,13 +11,13 @@ import {
 import debounce from 'debounce'
 import scrollIntoView from 'scroll-into-view-if-needed'
 
-import Children from './children'
-import Hotkeys from '../utils/hotkeys'
-import { IS_FIREFOX, IS_SAFARI } from '../utils/environment'
-import { ReactEditor } from '..'
-import { ReadOnlyContext } from '../hooks/use-read-only'
-import { useSlate } from '../hooks/use-slate'
-import { useIsomorphicLayoutEffect } from '../hooks/use-isomorphic-layout-effect'
+import Children from '../children'
+import Hotkeys from '../../utils/hotkeys'
+import { IS_FIREFOX, IS_SAFARI } from '../../utils/environment'
+import { ReactEditor } from '../..'
+import { ReadOnlyContext } from '../../hooks/use-read-only'
+import { useSlate } from '../../hooks/use-slate'
+import { useIsomorphicLayoutEffect } from '../../hooks/use-isomorphic-layout-effect'
 import {
   DOMElement,
   DOMNode,
@@ -26,7 +26,7 @@ import {
   isDOMNode,
   isDOMText,
   DOMStaticRange,
-} from '../utils/dom'
+} from '../../utils/dom'
 import {
   EDITOR_TO_ELEMENT,
   ELEMENT_TO_NODE,
@@ -34,7 +34,7 @@ import {
   NODE_TO_ELEMENT,
   IS_FOCUSED,
   PLACEHOLDER_SYMBOL,
-} from '../utils/weak-maps'
+} from '../../utils/weak-maps'
 
 /**
  * `RenderElementProps` are passed to the `renderElement` handler.
