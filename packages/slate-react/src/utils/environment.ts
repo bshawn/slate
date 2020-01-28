@@ -14,3 +14,5 @@ export const IS_FIREFOX =
 export const IS_SAFARI =
   typeof navigator !== 'undefined' &&
   /Version\/[\d\.]+.*Safari/.test(navigator.userAgent)
+
+export const IS_ANDROID = true

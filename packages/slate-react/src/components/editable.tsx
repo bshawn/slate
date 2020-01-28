@@ -13,7 +13,7 @@ import scrollIntoView from 'scroll-into-view-if-needed'
 
 import Children from './children'
 import Hotkeys from '../utils/hotkeys'
-import { IS_FIREFOX, IS_SAFARI } from '../utils/environment'
+import { IS_FIREFOX, IS_SAFARI, IS_ANDROID } from '../utils/environment'
 import { ReactEditor } from '..'
 import { ReadOnlyContext } from '../hooks/use-read-only'
 import { useSlate } from '../hooks/use-slate'
@@ -109,6 +109,7 @@ export const Editable = (props: EditableProps) => {
     () => ({
       isComposing: false,
       isUpdatingSelection: false,
+      isInputting: false,
       latestElement: null as DOMElement | null,
     }),
     []
@@ -230,11 +231,13 @@ export const Editable = (props: EditableProps) => {
         isComposing: boolean
       }
     ) => {
+      console.log('onDOMBeforeInput')
       if (
         !readOnly &&
         hasEditableTarget(editor, event.target) &&
         !isDOMEventHandled(event, propsOnDOMBeforeInput)
       ) {
+        state.isInputting = true
         const { selection } = editor
         const { inputType: type } = event
         const data = event.dataTransfer || event.data || undefined
@@ -250,106 +253,111 @@ export const Editable = (props: EditableProps) => {
 
         event.preventDefault()
 
-        // COMPAT: For the deleting forward/backward input types we don't want
-        // to change the selection because it is the range that will be deleted,
-        // and those commands determine that for themselves.
-        if (!type.startsWith('delete') || type.startsWith('deleteBy')) {
-          const [targetRange] = event.getTargetRanges()
+        if (!IS_ANDROID) {
+          // COMPAT: For the deleting forward/backward input types we don't want
+          // to change the selection because it is the range that will be deleted,
+          // and those commands determine that for themselves.
+          if (!type.startsWith('delete') || type.startsWith('deleteBy')) {
+            const [targetRange] = event.getTargetRanges()
 
-          if (targetRange) {
-            const range = ReactEditor.toSlateRange(editor, targetRange)
+            if (targetRange) {
+              const range = ReactEditor.toSlateRange(editor, targetRange)
 
-            if (!selection || !Range.equals(selection, range)) {
-              Transforms.select(editor, range)
+              if (!selection || !Range.equals(selection, range)) {
+                Transforms.select(editor, range)
+              }
             }
           }
-        }
 
-        // COMPAT: If the selection is expanded, even if the command seems like
-        // a delete forward/backward command it should delete the selection.
-        if (
-          selection &&
-          Range.isExpanded(selection) &&
-          type.startsWith('delete')
-        ) {
-          Editor.deleteFragment(editor)
-          return
-        }
-
-        switch (type) {
-          case 'deleteByComposition':
-          case 'deleteByCut':
-          case 'deleteByDrag': {
+          // COMPAT: If the selection is expanded, even if the command seems like
+          // a delete forward/backward command it should delete the selection.
+          if (
+            selection &&
+            Range.isExpanded(selection) &&
+            type.startsWith('delete')
+          ) {
             Editor.deleteFragment(editor)
-            break
+            return
           }
 
-          case 'deleteContent':
-          case 'deleteContentForward': {
-            Editor.deleteForward(editor)
-            break
-          }
-
-          case 'deleteContentBackward': {
-            Editor.deleteBackward(editor)
-            break
-          }
-
-          case 'deleteEntireSoftLine': {
-            Editor.deleteBackward(editor, { unit: 'line' })
-            Editor.deleteForward(editor, { unit: 'line' })
-            break
-          }
-
-          case 'deleteHardLineBackward': {
-            Editor.deleteBackward(editor, { unit: 'block' })
-            break
-          }
-
-          case 'deleteSoftLineBackward': {
-            Editor.deleteBackward(editor, { unit: 'line' })
-            break
-          }
-
-          case 'deleteHardLineForward': {
-            Editor.deleteForward(editor, { unit: 'block' })
-            break
-          }
-
-          case 'deleteSoftLineForward': {
-            Editor.deleteForward(editor, { unit: 'line' })
-            break
-          }
-
-          case 'deleteWordBackward': {
-            Editor.deleteBackward(editor, { unit: 'word' })
-            break
-          }
-
-          case 'deleteWordForward': {
-            Editor.deleteForward(editor, { unit: 'word' })
-            break
-          }
-
-          case 'insertLineBreak':
-          case 'insertParagraph': {
-            Editor.insertBreak(editor)
-            break
-          }
-
-          case 'insertFromComposition':
-          case 'insertFromDrop':
-          case 'insertFromPaste':
-          case 'insertFromYank':
-          case 'insertReplacementText':
-          case 'insertText': {
-            if (data instanceof DataTransfer) {
-              ReactEditor.insertData(editor, data)
-            } else if (typeof data === 'string') {
-              Editor.insertText(editor, data)
+          switch (type) {
+            case 'deleteByComposition':
+            case 'deleteByCut':
+            case 'deleteByDrag': {
+              Editor.deleteFragment(editor)
+              break
             }
 
-            break
+            case 'deleteContent':
+            case 'deleteContentForward': {
+              Editor.deleteForward(editor)
+              break
+            }
+
+            case 'deleteContentBackward': {
+              Editor.deleteBackward(editor)
+              break
+            }
+
+            case 'deleteEntireSoftLine': {
+              Editor.deleteBackward(editor, { unit: 'line' })
+              Editor.deleteForward(editor, { unit: 'line' })
+              break
+            }
+
+            case 'deleteHardLineBackward': {
+              Editor.deleteBackward(editor, { unit: 'block' })
+              break
+            }
+
+            case 'deleteSoftLineBackward': {
+              Editor.deleteBackward(editor, { unit: 'line' })
+              break
+            }
+
+            case 'deleteHardLineForward': {
+              Editor.deleteForward(editor, { unit: 'block' })
+              break
+            }
+
+            case 'deleteSoftLineForward': {
+              Editor.deleteForward(editor, { unit: 'line' })
+              break
+            }
+
+            case 'deleteWordBackward': {
+              Editor.deleteBackward(editor, { unit: 'word' })
+              break
+            }
+
+            case 'deleteWordForward': {
+              Editor.deleteForward(editor, { unit: 'word' })
+              break
+            }
+
+            case 'insertLineBreak':
+            case 'insertParagraph': {
+              console.log('inserting paragraph')
+              Editor.insertBreak(editor)
+              break
+            }
+
+            case 'insertFromComposition':
+            case 'insertFromDrop':
+            case 'insertFromPaste':
+            case 'insertFromYank':
+            case 'insertReplacementText':
+            case 'insertText': {
+              if (data instanceof DataTransfer) {
+                console.log('inserting data')
+                ReactEditor.insertData(editor, data)
+              } else if (typeof data === 'string') {
+                console.log('inserting text')
+                Editor.insertText(editor, data)
+              }
+
+              break
+            }
           }
         }
       }
@@ -364,7 +372,13 @@ export const Editable = (props: EditableProps) => {
   // while a selection is being dragged.
   const onDOMSelectionChange = useCallback(
     debounce(() => {
-      if (!readOnly && !state.isComposing && !state.isUpdatingSelection) {
+      console.log('onDOMSelectionChange')
+      if (
+        !readOnly &&
+        !state.isComposing &&
+        !state.isUpdatingSelection &&
+        !state.isInputting
+      ) {
         const { activeElement } = window.document
         const el = ReactEditor.toDOMNode(editor, editor)
         const domSelection = window.getSelection()
@@ -443,12 +457,14 @@ export const Editable = (props: EditableProps) => {
         }}
         onBeforeInput={useCallback(
           (event: React.SyntheticEvent) => {
+            console.log('onBeforeInput', state)
             // COMPAT: Firefox doesn't support the `beforeinput` event, so we
             // fall back to React's leaky polyfill instead just for it. It
             // only works for the `insertText` input type.
-            if (IS_FIREFOX && !readOnly) {
+            if (IS_FIREFOX && !readOnly && !state.isInputting) {
               event.preventDefault()
               const text = (event as any).data as string
+              console.log('inserting text')
               Editor.insertText(editor, text)
             }
           },
@@ -456,6 +472,7 @@ export const Editable = (props: EditableProps) => {
         )}
         onBlur={useCallback(
           (event: React.FocusEvent<HTMLDivElement>) => {
+            console.log('onBlur')
             if (
               readOnly ||
               state.isUpdatingSelection ||
@@ -513,6 +530,7 @@ export const Editable = (props: EditableProps) => {
         )}
         onClick={useCallback(
           (event: React.MouseEvent<HTMLDivElement>) => {
+            console.log('onClick', event.target)
             if (
               !readOnly &&
               hasTarget(editor, event.target) &&
@@ -525,14 +543,26 @@ export const Editable = (props: EditableProps) => {
 
               if (Editor.void(editor, { at: start })) {
                 const range = Editor.range(editor, start)
+                console.log('void', range.anchor.offset, range.anchor.path)
                 Transforms.select(editor, range)
               }
+              console.log(
+                'selection',
+                editor.selection ? editor.selection.anchor.offset : '',
+                editor.selection ? editor.selection.anchor.path : ''
+              )
             }
           },
           [readOnly, attributes.onClick]
         )}
         onCompositionEnd={useCallback(
           (event: React.CompositionEvent<HTMLDivElement>) => {
+            // debugger
+            console.log('onCompositionEnd', event.data, event, state)
+            console.log(
+              editor.selection ? editor.selection.anchor.offset : '',
+              editor.selection ? editor.selection.anchor.path : ''
+            )
             if (
               hasEditableTarget(editor, event.target) &&
               !isEventHandled(event, attributes.onCompositionEnd)
@@ -544,14 +574,23 @@ export const Editable = (props: EditableProps) => {
               // type that we need. So instead, insert whenever a composition
               // ends since it will already have been committed to the DOM.
               if (!IS_SAFARI && !IS_FIREFOX && event.data) {
+                console.log('inserting text')
                 Editor.insertText(editor, event.data)
               }
             }
+
+            state.isInputting = false
           },
           [attributes.onCompositionEnd]
         )}
         onCompositionStart={useCallback(
           (event: React.CompositionEvent<HTMLDivElement>) => {
+            // debugger
+            console.log('onCompositionStart', event.data, event, state)
+            console.log(
+              editor.selection ? editor.selection.anchor.offset : '',
+              editor.selection ? editor.selection.anchor.path : ''
+            )
             if (
               hasEditableTarget(editor, event.target) &&
               !isEventHandled(event, attributes.onCompositionStart)
@@ -563,6 +602,7 @@ export const Editable = (props: EditableProps) => {
         )}
         onCopy={useCallback(
           (event: React.ClipboardEvent<HTMLDivElement>) => {
+            console.log('onCopy')
             if (
               hasEditableTarget(editor, event.target) &&
               !isEventHandled(event, attributes.onCopy)
@@ -575,6 +615,7 @@ export const Editable = (props: EditableProps) => {
         )}
         onCut={useCallback(
           (event: React.ClipboardEvent<HTMLDivElement>) => {
+            console.log('onCut')
             if (
               !readOnly &&
               hasEditableTarget(editor, event.target) &&
@@ -593,6 +634,7 @@ export const Editable = (props: EditableProps) => {
         )}
         onDragOver={useCallback(
           (event: React.DragEvent<HTMLDivElement>) => {
+            console.log('onDragOver')
             if (
               hasTarget(editor, event.target) &&
               !isEventHandled(event, attributes.onDragOver)
@@ -611,6 +653,7 @@ export const Editable = (props: EditableProps) => {
         )}
         onDragStart={useCallback(
           (event: React.DragEvent<HTMLDivElement>) => {
+            console.log('onDragStart')
             if (
               hasTarget(editor, event.target) &&
               !isEventHandled(event, attributes.onDragStart)
@@ -633,6 +676,7 @@ export const Editable = (props: EditableProps) => {
         )}
         onDrop={useCallback(
           (event: React.DragEvent<HTMLDivElement>) => {
+            console.log('onDrop')
             if (
               hasTarget(editor, event.target) &&
               !readOnly &&
@@ -650,6 +694,7 @@ export const Editable = (props: EditableProps) => {
                 const range = ReactEditor.findEventRange(editor, event)
                 const data = event.dataTransfer
                 Transforms.select(editor, range)
+                console.log('inserting text')
                 ReactEditor.insertData(editor, data)
               }
             }
@@ -658,6 +703,7 @@ export const Editable = (props: EditableProps) => {
         )}
         onFocus={useCallback(
           (event: React.FocusEvent<HTMLDivElement>) => {
+            console.log('onFocus')
             if (
               !readOnly &&
               !state.isUpdatingSelection &&
@@ -682,6 +728,13 @@ export const Editable = (props: EditableProps) => {
         )}
         onKeyDown={useCallback(
           (event: React.KeyboardEvent<HTMLDivElement>) => {
+            // debugger
+            console.log('onKeyDown', event.which)
+            console.log(
+              editor.selection ? editor.selection.anchor.offset : '',
+              editor.selection ? editor.selection.anchor.path : ''
+            )
+
             if (
               !readOnly &&
               hasEditableTarget(editor, event.target) &&
@@ -689,6 +742,14 @@ export const Editable = (props: EditableProps) => {
             ) {
               const { nativeEvent } = event
               const { selection } = editor
+
+              // state.isInputting = false
+
+              if (IS_ANDROID && event.which === 13) {
+                event.preventDefault()
+                Editor.insertBreak(editor)
+                return
+              }
 
               // COMPAT: Since we prevent the default behavior on
               // `beforeinput` events, the browser doesn't think there's ever
@@ -755,8 +816,10 @@ export const Editable = (props: EditableProps) => {
                 event.preventDefault()
 
                 if (selection && Range.isCollapsed(selection)) {
+                  console.log('movingBackward')
                   Transforms.move(editor, { reverse: true })
                 } else {
+                  console.log('notMovingBackward', selection)
                   Transforms.collapse(editor, { edge: 'start' })
                 }
 
@@ -804,6 +867,7 @@ export const Editable = (props: EditableProps) => {
 
                 if (Hotkeys.isSplitBlock(nativeEvent)) {
                   event.preventDefault()
+                  console.log('inserting text')
                   Editor.insertBreak(editor)
                   return
                 }
@@ -880,12 +944,15 @@ export const Editable = (props: EditableProps) => {
                   return
                 }
               }
+
+              console.log('after onKeyDown', state)
             }
           },
           [readOnly, attributes.onKeyDown]
         )}
         onPaste={useCallback(
           (event: React.ClipboardEvent<HTMLDivElement>) => {
+            console.log('onPaste')
             // COMPAT: Firefox doesn't support the `beforeinput` event, so we
             // fall back to React's `onPaste` here instead.
             if (
@@ -895,6 +962,7 @@ export const Editable = (props: EditableProps) => {
               !isEventHandled(event, attributes.onPaste)
             ) {
               event.preventDefault()
+              console.log('inserting text')
               ReactEditor.insertData(editor, event.clipboardData)
             }
           },
