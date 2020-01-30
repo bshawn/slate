@@ -33,6 +33,13 @@ const RichTextExample = () => {
         <BlockButton format="block-quote" icon="format_quote" />
         <BlockButton format="numbered-list" icon="format_list_numbered" />
         <BlockButton format="bulleted-list" icon="format_list_bulleted" />
+        <Button
+          onMouseDown={e => {
+            console.info(editor.children)
+          }}
+        >
+          S
+        </Button>
       </Toolbar>
       <Editable
         renderElement={renderElement}
