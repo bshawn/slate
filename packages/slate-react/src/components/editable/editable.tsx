@@ -1,6 +1,12 @@
 // #region imports
 
-import React, { useEffect, useRef, useMemo, useCallback } from 'react'
+import React, {
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+  SyntheticEvent,
+} from 'react'
 import { Editor, Element, NodeEntry, Node, Range, Transforms } from 'slate'
 import debounce from 'debounce'
 import scrollIntoView from 'scroll-into-view-if-needed'
@@ -117,6 +123,71 @@ export const Editable = (props: EditableProps) => {
     }
   }, [])
 
+  useIsomorphicLayoutEffect(() => {
+    window.document.addEventListener('beforeinput', onDomBeforeInput)
+    return () => {
+      window.document.removeEventListener('beforeinput', onDomBeforeInput)
+    }
+  }, [])
+
+  const onDomBeforeInput = useCallback(event => {
+    console.log('onDomBeforeInput')
+    event.preventDefault()
+    event.stopPropagation()
+  }, [])
+
+  useIsomorphicLayoutEffect(() => {
+    window.document.addEventListener('input', onDomInput)
+    return () => {
+      window.document.removeEventListener('input', onDomInput)
+    }
+  }, [])
+
+  const onDomInput = useCallback(event => {
+    console.log('onDomInput')
+    event.preventDefault()
+    event.stopPropagation()
+  }, [])
+
+  useIsomorphicLayoutEffect(() => {
+    window.document.addEventListener('textinput', onDomTextInput)
+    return () => {
+      window.document.removeEventListener('textinput', onDomTextInput)
+    }
+  }, [])
+
+  const onDomTextInput = useCallback(event => {
+    console.log('onDomTextInput')
+    event.preventDefault()
+    event.stopPropagation()
+  }, [])
+
+  useIsomorphicLayoutEffect(() => {
+    window.document.addEventListener('keydown', onDomKeyDown)
+    return () => {
+      window.document.removeEventListener('keydown', onDomKeyDown)
+    }
+  }, [])
+
+  const onDomKeyDown = useCallback(event => {
+    console.log('onDomKeyDown')
+    event.preventDefault()
+    event.stopPropagation()
+  }, [])
+
+  useIsomorphicLayoutEffect(() => {
+    window.document.addEventListener('keyup', onDomKeyUp)
+    return () => {
+      window.document.removeEventListener('keyup', onDomKeyUp)
+    }
+  }, [])
+
+  const onDomKeyUp = useCallback(event => {
+    console.log('onDomKeyUp')
+    event.preventDefault()
+    event.stopPropagation()
+  }, [])
+
   // Whenever the editor updates, make sure the DOM selection state is in sync.
   useIsomorphicLayoutEffect(() => {
     const { selection } = editor
@@ -171,6 +242,56 @@ export const Editable = (props: EditableProps) => {
   useEffect(() => {
     if (ref.current && autoFocus) {
       ref.current.focus()
+    }
+    if (ref.current && !ref.current.onkeydown) {
+      ref.current.onkeydown = e => {
+        console.log('onRefKeyDown')
+        e.preventDefault()
+        e.stopPropagation()
+      }
+    }
+    if (ref.current && !ref.current.onkeyup) {
+      ref.current.onkeyup = e => {
+        console.log('onRefKeyUp')
+        e.preventDefault()
+        e.stopPropagation()
+      }
+    }
+    if (ref.current && !ref.current.oninput) {
+      ref.current.oninput = e => {
+        console.log('onRefInput')
+        e.preventDefault()
+        e.stopPropagation()
+      }
+    }
+    if (ref.current && !(ref.current as any).onbeforeinput) {
+      ; (ref.current as any).onbeforeinput = (e: Event) => {
+        console.log('onRefBeforeInput')
+        e.preventDefault()
+        e.stopPropagation()
+      }
+    }
+    if (ref.current) {
+      ref.current.addEventListener('compositionstart', e => {
+        console.log('onRefCompositionStart')
+        e.preventDefault()
+        e.stopPropagation()
+      })
+    }
+    if (ref.current) {
+      ref.current.addEventListener('compositionupdate', e => {
+        console.log('onRefCompositionUpdate', e)
+        e.cancelBubble = true
+        e.preventDefault()
+        e.stopPropagation()
+      })
+    }
+    if (ref.current) {
+      ref.current.addEventListener('compositionend', e => {
+        console.log('onRefCompositionEnd')
+        e.preventDefault()
+        e.stopPropagation()
+      })
     }
   }, [autoFocus])
 
@@ -258,49 +379,39 @@ export const Editable = (props: EditableProps) => {
           // Allow for passed-in styles to override anything.
           ...style,
         }}
-        onKeyDown={useCallback(
-          (event: React.KeyboardEvent) => {
-            console.log('onKeyDown')
-            event.preventDefault()
-            event.stopPropagation()
-          },
-          [readOnly]
-        )}
-        onKeyUp={useCallback(
-          (event: React.KeyboardEvent) => {
-            console.log('onKeyUp')
-            event.preventDefault()
-            event.stopPropagation()
-          },
-          [readOnly]
-        )}
-        onCompositionStart={useCallback(
-          (event: React.SyntheticEvent) => {
-            console.log('onCompositionStart')
-            event.preventDefault()
-            event.stopPropagation()
-          },
-          [readOnly]
-        )}
-        onBeforeInput={useCallback(
-          (event: React.SyntheticEvent) => {
-            console.log('onBeforeInput')
-            event.preventDefault()
-            event.stopPropagation()
-          },
-          [readOnly]
-        )}
-        onInput={useCallback(
-          (event: React.SyntheticEvent) => {
-            console.log('onInput')
-            event.preventDefault()
-            event.stopPropagation()
-          },
-          [readOnly]
-        )}
-        // onSelect={useCallback((event: React.SyntheticEvent) => {
-        //   console.log('onselect-synthetic', event)
-        // }, [])}
+        onKeyDown={useCallback((event: React.KeyboardEvent) => {
+          console.log('onKeyDown')
+          event.preventDefault()
+          event.stopPropagation()
+        }, [])}
+        onKeyUp={useCallback((event: React.KeyboardEvent) => {
+          console.log('onKeyUp')
+          event.preventDefault()
+          event.stopPropagation()
+        }, [])}
+        onCompositionStart={useCallback((event: React.SyntheticEvent) => {
+          console.log('onCompositionStart')
+          event.preventDefault()
+          event.stopPropagation()
+        }, [])}
+        onCompositionUpdate={useCallback((event: React.SyntheticEvent) => {
+          console.log('onCompositionUpdate')
+          event.preventDefault()
+          event.stopPropagation()
+        }, [])}
+        onBeforeInput={useCallback((event: React.SyntheticEvent) => {
+          console.log('onBeforeInput')
+          event.preventDefault()
+          event.stopPropagation()
+        }, [])}
+        onInput={useCallback((event: React.SyntheticEvent) => {
+          console.log('onInput')
+          event.preventDefault()
+          event.stopPropagation()
+        }, [])}
+        onSelect={useCallback((event: React.SyntheticEvent) => {
+          console.log('onselect-synthetic', event)
+        }, [])}
         onBlur={useCallback(
           (event: React.FocusEvent<HTMLDivElement>) => {
             if (
